@@ -2,7 +2,7 @@ SEED = 42
 PNLN = 0.0001
 m = 64
 tau = 1
-delta = 2
+delta = 1
 
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 #########################################################################################
 # Esta funcion es la encargada de crear la base de datos a partir de una serie de timpo #
-# recive Ts que es la serie de tiempo, m que es tamaño de la ventana, tau que es el     #
+# recibe Ts que es la serie de tiempo, m que es tamaño de la ventana, tau que es el     #
 # desplazamiento de la ventana, y delta que el la cantidad de datos a predecir          #
 #########################################################################################
 
@@ -22,7 +22,7 @@ def TS2DBS(TS, m, tau, delta):
     return DB,Y
 
 ########################################################################################
-# La funcion recive una serie de tiempo la proporcion tomada de los datos para el test #
+# La funcion recibe una serie de tiempo la proporcion tomada de los datos para el test #
 # set y la proporcion del test set que ha de ser utilizada para crear al validationset #
 # ademas internamente estandariza la serie de tiempo de entrada para mejorar el rendi- #
 # miento durante el entrenamiento.                                                     #
