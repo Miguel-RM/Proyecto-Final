@@ -180,7 +180,7 @@ def MAPE(y_target, y_predic):
 # Esta función se utiliza para mostrar la gráfica de y_target vs y_predict             #
 ########################################################################################
 
-def graficasPrediccion(Y_inv, Y_pred_inv):
+def graphPrediction(Y_inv, Y_pred_inv):
     plt.figure(figsize=(16, 8))
     plt.xlabel('Prediction vs Real')
     plt.ylabel('Magnitude')
@@ -194,7 +194,7 @@ def graficasPrediccion(Y_inv, Y_pred_inv):
 # Esta funcion se encarga de plotear las graficas del historial de entrenamiento      #
 #######################################################################################
 
-def plot_history(history):
+def plotHistory(history):
     hist = pd.DataFrame(history.history)
     hist['epoch'] = history.epoch
   
@@ -210,17 +210,6 @@ def plot_history(history):
 
     #plt.ylim([0,20])
     plt.legend(loc="upper right")
-
-    plt.subplot(224)
-    #plt.figure()
-    plt.xlabel('Epoch')
-    plt.ylabel('Precisión')
-    plt.plot(hist['epoch'], hist['acc'],
-             label='Train ACC')
-    plt.plot(hist['epoch'], hist['val_acc'],
-             label = 'Val ACC')
-    #plt.ylim([0,20])
-    plt.legend(loc="lower right")
 
     plt.subplot(222)
     plt.xlabel('Epoch')
