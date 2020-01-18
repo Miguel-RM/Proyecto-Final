@@ -3,18 +3,63 @@ from tensorflow import set_random_seed
 
 # Constantes
 SEED = 42
+EPSI = 0.000000000001
 set_random_seed(SEED)
 
 # Importacion de las bibliotecas necesarias
 
-from sklearn.metrics import mean_squared_error 
 from tensorflow.keras.callbacks import EarlyStopping
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error 
+from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot as plt
 from tensorflow.keras import layers
 from keras import regularizers
 from tensorflow import keras
+from math import sqrt
 import numpy as np
 import pandas as pd
+
+
+
+########################################################################################
+# La funcion recibe una serie de tiempo la proporcion tomada de los datos para el test #
+# set y la proporcion del test set que ha de ser utilizada para crear al validationset #
+# ademas internamente estandariza la serie de tiempo de entrada para mejorar el rendi- #
+# miento durante el entrenamiento.                                                     #
+########################################################################################
+
+def generateSets(matrizDiseño, test_siz, val_size):
+    
+    col = np.array(matrizDiseño.shape)
+    col = col[1]
+
+    y = matrizDiseño.iloc[: , -1].values
+    X = matrizDiseño.iloc[: , 0:col-1].values
+
+    # Cracion del Train_set
+    X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=test_siz, random_state=SEED)
+
+    y_train=y_train.reshape(len(y_train), 1)
+    y_test=y_test.reshape(len(y_test), 1)
+
+    # Estazndarizacion de los Datos
+    scaler1 = StandardScaler()
+    X_train = scaler1.fit_transform(X_train)
+    scaler2 = StandardScaler()
+    X_test = scaler2.fit_transform(X_test)
+    scaler3 = StandardScaler()
+    y_train = scaler3.fit_transform(y_train)
+    scaler4 = StandardScaler()
+    y_test = scaler4.fit_transform(y_test)
+
+    # Cracion del validation set
+    X_train, X_val, y_train, y_val = train_test_split(
+    X_train, y_train, test_size=val_size, random_state=SEED)
+    
+    return scaler4, X_train, X_val, X_test, y_train, y_val, y_test
+
 
 #########################################################################################
 # Esta función se encarga de crear un modelo de MLP sin regularización los parametros   #
@@ -28,7 +73,7 @@ import pandas as pd
 #                                                                                       #
 #########################################################################################
 
-def ModMLPN(neurons, activations, m, show=True): # Modelo de la red neuronal a utilizar
+def modMLPN(neurons, activations, m, show=True): # Modelo de la red neuronal a utilizar
     # Se comienza a declarar la red neuronal
     if neurons.shape != activations.shape:
         print('No corresponde numero de neuronas y funciones de activación')
@@ -52,7 +97,7 @@ def ModMLPN(neurons, activations, m, show=True): # Modelo de la red neuronal a u
 # lamda es la penalizacion que se le da a los pesos                                     #
 #########################################################################################
 
-def ModMLPR(neurons, activations, m, lamda=0.0001, show=True): # Modelo de la red neuronal a utilizar
+def modMLPR(neurons, activations, m, lamda=0.0001, show=True): # Modelo de la red neuronal a utilizar
     # Se comienza a declarar la red neuronal
     if neurons.shape != activations.shape:
         print('No corresponde numero de neuronas y funciones de activación')
@@ -75,14 +120,14 @@ def ModMLPR(neurons, activations, m, lamda=0.0001, show=True): # Modelo de la re
 # una lamda regresa un modelo sin regularización                                       #
 ########################################################################################
 
-def ModMLP(neuronas, activaciones, m, lamda=0, show=True):
+def modMLP(neuronas, activaciones, m, lamda=0, show=True):
     neuronas = np.array(neuronas)
     activaciones = np.array(activaciones)
     
     if 0 == lamda:
-        model = ModMLPN(neuronas, activaciones, m)
+        model = modMLPN(neuronas, activaciones, m)
     else:
-        model = ModMLPR(neuronas, activaciones, m, lamda)
+        model = modMLPR(neuronas, activaciones, m, lamda)
     return model
 
 ########################################################################################
@@ -113,10 +158,17 @@ def fitMLP(model, X_train, y_train, X_val, y_val, X_test, y_test, epoc=30, patie
 # que es utilizada por otra función que se encarga de adicionar el ruido al train_set   #
 #########################################################################################
 
-def addNoise(train_set, rep, mean, sigma, i):
+def addNoise(train_set, rep, mean, snr, i):
     i = int(i/rep)
-    
     l = len(train_set[0])
+
+    Ps = train_set[i]
+    Ps = Ps * Ps
+    Ps = Ps.sum() / l
+
+    sigma = sqrt(Ps/10**snr)
+    #sigma = sqrt(Ps/snr)
+
     e = np.random.normal(mean, sigma, size=(l))
     Nueva_muestra = train_set[i,:] + e
     
@@ -142,9 +194,9 @@ def returnTarget(y_train, rep, i):
 ########################################################################################
 
 
-def trainNoise(X_train, y_train, SIGMA, NUMREP=2):
+def trainNoise(X_train, y_train, snr, NUMREP=2):
     
-    X_train_e =  [addNoise(X_train, NUMREP, 0, SIGMA,i)
+    X_train_e =  [addNoise(X_train, NUMREP, 0, snr,i)
                for i in range(len(X_train)*NUMREP)
              ]
     y_train_e = [returnTarget(y_train, NUMREP, i)
@@ -156,21 +208,27 @@ def trainNoise(X_train, y_train, SIGMA, NUMREP=2):
     return X_train_e, y_train_e
 
 ########################################################################################
+# Esta funcion se encarga a partir de una NSR obtener una sigma                        #
+########################################################################################
+
+
+
+########################################################################################
 # Funciones de error, únicamente reciben el y_target y el y_predict                    #
 ########################################################################################
 
-def SMAPE(y_target, y_predic):
+def sMAPE(y_target, y_predic):
     
     porcent = 100/len(y_target)
-    smape = abs(y_target - y_predic) / (y_target + y_predic)
+    smape = abs(y_target - y_predic) / (y_target + y_predic + EPSI)
     smape = smape.sum() * porcent
     
     return smape
 
-def MAPE(y_target, y_predic):
+def mAPE(y_target, y_predic):
     
     porcent = 100/len(y_target)
-    mape = abs(y_target - y_predic) / y_predic
+    mape = abs(y_target - y_predic) / (y_predic + EPSI)
     mape = mape.sum() * porcent
     
     return mape
@@ -180,13 +238,18 @@ def MAPE(y_target, y_predic):
 # Esta función se utiliza para mostrar la gráfica de y_target vs y_predict             #
 ########################################################################################
 
-def graphPrediction(Y_inv, Y_pred_inv):
+def graphPrediction(Y_inv, Y_pred_inv, samples):
+
+    if samples > len(Y_inv):
+        samples = len(Y_inv)
+
     plt.figure(figsize=(16, 8))
     plt.xlabel('Prediction vs Real')
     plt.ylabel('Magnitude')
-    plt.plot(Y_inv,marker='.', label="Real")
-    plt.plot(Y_pred_inv, 'r', label="Prediction")
+    plt.plot(Y_inv[0:samples],marker='.', label="Real")
+    plt.plot(Y_pred_inv[0:samples], 'r', label="Prediction")
     plt.legend(loc="lower right")
+    plt.savefig("PrediccionvsReal.png", bbox_inches='tight')
     plt.show()
 
 
