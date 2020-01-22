@@ -1,15 +1,17 @@
-from jupyterthemes import jtplot
-from tensorflow import set_random_seed
+#from tensorflow import set_random_seed
 
 # Constantes
 SEED = 42
 EPSI = 0.000000000001
-set_random_seed(SEED)
+#set_random_seed(SEED)
 
 # Importacion de las bibliotecas necesarias
 
+import bokeh
+from bokeh.plotting import gridplot, figure, output_file, output_notebook, show
 from tensorflow.keras.callbacks import EarlyStopping
 from sklearn.model_selection import train_test_split
+from bokeh.models import Legend
 from sklearn.metrics import mean_squared_error 
 from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot as plt
@@ -20,6 +22,7 @@ from math import sqrt
 import numpy as np
 import pandas as pd
 
+np.random.seed(SEED)
 
 
 ########################################################################################
@@ -44,21 +47,11 @@ def generateSets(matrizDiseño, test_siz, val_size):
     y_train=y_train.reshape(len(y_train), 1)
     y_test=y_test.reshape(len(y_test), 1)
 
-    # Estazndarizacion de los Datos
-    scaler1 = StandardScaler()
-    X_train = scaler1.fit_transform(X_train)
-    scaler2 = StandardScaler()
-    X_test = scaler2.fit_transform(X_test)
-    scaler3 = StandardScaler()
-    y_train = scaler3.fit_transform(y_train)
-    scaler4 = StandardScaler()
-    y_test = scaler4.fit_transform(y_test)
-
     # Cracion del validation set
     X_train, X_val, y_train, y_val = train_test_split(
     X_train, y_train, test_size=val_size, random_state=SEED)
     
-    return scaler4, X_train, X_val, X_test, y_train, y_val, y_test
+    return X_train, X_val, X_test, y_train, y_val, y_test
 
 
 #########################################################################################
@@ -137,7 +130,7 @@ def modMLP(neuronas, activaciones, m, lamda=0, show=True):
 
 
 def fitMLP(model, X_train, y_train, X_val, y_val, X_test, y_test, epoc=30, patien=-1):
-    
+    #adam = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
     model.compile(loss="mean_squared_error", optimizer="adam", metrics=['mae', 'mse'])  
     
     if -1 == patien:
@@ -158,17 +151,9 @@ def fitMLP(model, X_train, y_train, X_val, y_val, X_test, y_test, epoc=30, patie
 # que es utilizada por otra función que se encarga de adicionar el ruido al train_set   #
 #########################################################################################
 
-def addNoise(train_set, rep, mean, snr, i):
-    i = int(i/rep)
+def addNoise(train_set, rep, mean, sigma, i):
+
     l = len(train_set[0])
-
-    Ps = train_set[i]
-    Ps = Ps * Ps
-    Ps = Ps.sum() / l
-
-    sigma = sqrt(Ps/10**snr)
-    #sigma = sqrt(Ps/snr)
-
     e = np.random.normal(mean, sigma, size=(l))
     Nueva_muestra = train_set[i,:] + e
     
@@ -194,9 +179,22 @@ def returnTarget(y_train, rep, i):
 ########################################################################################
 
 
-def trainNoise(X_train, y_train, snr, NUMREP=2):
-    
-    X_train_e =  [addNoise(X_train, NUMREP, 0, snr,i)
+def trainNoise(serie, X_train, y_train, Esysm, SNR_dB, NUMREP=2):
+
+    serie = pd.read_csv(serie)
+    x = serie.values
+
+    L = len(X_train[0])
+    #SNR a escala lineal
+    SNR = np.power(10,(SNR_dB/10))
+    #Calcular la energía
+    Esym = np.sum(np.power(abs(x),2))/(L);
+    #Encontrar la densidad espectral de ruido
+    N0=Esym/SNR;
+    #Desviación estándar para el Ruido
+    noiseSigma =np.sqrt(N0);
+
+    X_train_e =  [addNoise(X_train, NUMREP, 0, SNR_dB,i)
                for i in range(len(X_train)*NUMREP)
              ]
     y_train_e = [returnTarget(y_train, NUMREP, i)
@@ -220,7 +218,7 @@ def trainNoise(X_train, y_train, snr, NUMREP=2):
 def sMAPE(y_target, y_predic):
     
     porcent = 100/len(y_target)
-    smape = abs(y_target - y_predic) / (y_target + y_predic + EPSI)
+    smape = abs(y_target - y_predic) / abs(y_target + y_predic + EPSI)
     smape = smape.sum() * porcent
     
     return smape
@@ -228,7 +226,7 @@ def sMAPE(y_target, y_predic):
 def mAPE(y_target, y_predic):
     
     porcent = 100/len(y_target)
-    mape = abs(y_target - y_predic) / (y_predic + EPSI)
+    mape = abs(y_target - y_predic) / abs(y_predic + EPSI)
     mape = mape.sum() * porcent
     
     return mape
