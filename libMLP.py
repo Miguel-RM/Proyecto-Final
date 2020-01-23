@@ -109,6 +109,22 @@ def modMLPR(neurons, activations, m, lamda=0.0001, show=True): # Modelo de la re
     
     return model
 
+###########################################################################################
+# Arquitectura de Cris                                                                    #
+###########################################################################################
+
+def arquitectura(lis,funcion,m,reg):
+    
+    model = keras.Sequential([
+    keras.layers.Dense(lis[0], activation=funcion[0],input_shape=[m]),
+    keras.layers.Dense(lis[1], activation=funcion[1],activity_regularizer=l2(reg)),
+    keras.layers.Dense(lis[2], activation=funcion[2],activity_regularizer=l2(reg)),
+    keras.layers.Dense(lis[3], activation=funcion[3],activity_regularizer=l2(reg)),
+ 
+    keras.layers.Dense(1)])
+    model.summary()
+    return model
+
 ########################################################################################
 # Para unificar las dos funciones anteriores se creo esta por tanto cuando no se le da #
 # una lamda regresa un modelo sin regularización                                       #
@@ -181,7 +197,7 @@ def returnTarget(y_train, rep, i):
 ########################################################################################
 
 
-def trainNoise(serie, X_train, y_train, Esysm, SNR_dB, NUMREP=2):
+def trainNoise(serie, X_train, y_train, SNR_dB, NUMREP=2):
 
     Ts = pd.read_csv(serie)
     valores = Ts.values
@@ -219,12 +235,11 @@ def trainNoise(serie, X_train, y_train, Esysm, SNR_dB, NUMREP=2):
 # Funciones de error, únicamente reciben el y_target y el y_predict                    #
 ########################################################################################
 
-def sMAPE(y_target, y_predic):
-    
+def sMAPE(y_target, y_predic, epsilon=0.001):
     porcent = 100/len(y_target)
-    smape = abs(y_target - y_predic) / abs(y_target + y_predic + EPSI)
-    smape = smape.sum() * porcent
-    
+    lista = np.asarray([abs(yt-yp)/(abs(yt)+abs(yp)) if abs(yt)+abs(yp)>epsilon else 0 for yt,yp in zip(y_target,y_predic)])
+    smape = lista.sum() * porcent
+
     return smape
 
 def mAPE(y_target, y_predic):
