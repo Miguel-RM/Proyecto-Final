@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from bokeh.models import Legend
 from sklearn.metrics import mean_squared_error 
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
 from tensorflow.keras import layers
 from keras import regularizers
@@ -153,6 +154,7 @@ def fitMLP(model, X_train, y_train, X_val, y_val, X_test, y_test, epoc=30, patie
 
 def addNoise(train_set, rep, mean, sigma, i):
 
+    i = int(i/rep)
     l = len(train_set[0])
     e = np.random.normal(mean, sigma, size=(l))
     Nueva_muestra = train_set[i,:] + e
@@ -181,10 +183,12 @@ def returnTarget(y_train, rep, i):
 
 def trainNoise(serie, X_train, y_train, Esysm, SNR_dB, NUMREP=2):
 
-    serie = pd.read_csv(serie)
-    x = serie.values
+    Ts = pd.read_csv(serie)
+    valores = Ts.values
+    scaler = MinMaxScaler()
+    x = scaler.fit_transform(valores)
 
-    L = len(X_train[0])
+    L = len(x)
     #SNR a escala lineal
     SNR = np.power(10,(SNR_dB/10))
     #Calcular la energía
@@ -194,7 +198,7 @@ def trainNoise(serie, X_train, y_train, Esysm, SNR_dB, NUMREP=2):
     #Desviación estándar para el Ruido
     noiseSigma =np.sqrt(N0);
 
-    X_train_e =  [addNoise(X_train, NUMREP, 0, SNR_dB,i)
+    X_train_e =  [addNoise(X_train, NUMREP, 0, noiseSigma,i)
                for i in range(len(X_train)*NUMREP)
              ]
     y_train_e = [returnTarget(y_train, NUMREP, i)
