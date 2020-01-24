@@ -172,6 +172,7 @@ def addNoise(train_set, rep, mean, sigma, i):
 
     i = int(i/rep)
     l = len(train_set[0])
+
     e = np.random.normal(mean, sigma, size=(l))
     Nueva_muestra = train_set[i,:] + e
     
@@ -222,6 +223,8 @@ def trainNoise(serie, X_train, y_train, SNR_dB, NUMREP=2):
              ]
     X_train_e = np.array(X_train_e)
     y_train_e = np.array(y_train_e)
+    X_train_e = np.concatenate((X_train_e, X_train), axis=0)
+    y_train_e = np.concatenate((y_train_e, y_train), axis=0)
 
     return X_train_e, y_train_e
 
