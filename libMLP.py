@@ -146,15 +146,15 @@ def modMLP(neuronas, activaciones, m, lamda=0, show=True):
 ########################################################################################
 
 
-def fitMLP(model, X_train, y_train, X_val, y_val, X_test, y_test, epoc=30, patien=-1):
+def fitMLP(model, X_train, y_train, X_val, y_val, X_test, y_test, epoc=30, patien=-1, verb=1):
     #adam = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
     model.compile(loss="mean_squared_error", optimizer="adam", metrics=['mae', 'mse'])  
     
     if -1 == patien:
-        history = model.fit(X_train, y_train, batch_size=64, epochs=epoc, validation_data=(X_val, y_val))
+        history = model.fit(X_train, y_train, batch_size=64, verbose=verb, epochs=epoc, validation_data=(X_val, y_val))
     else:
         callback = EarlyStopping(monitor='val_loss', patience=patien, restore_best_weights=True)
-        history = model.fit(X_train, y_train, batch_size=64, callbacks=[callback], epochs=epoc, validation_data=(X_val, y_val))
+        history = model.fit(X_train, y_train, batch_size=64,verbose=verb, callbacks=[callback], epochs=epoc, validation_data=(X_val, y_val))
 
     test_scores = model.evaluate(X_test, y_test, batch_size=64)
     print('Test loss:', test_scores[0])
