@@ -1,10 +1,5 @@
-#from tensorflow import set_random_seed
-
-# Constantes
 SEED = 42
-EPSI = 0.000000000001
-#set_random_seed(SEED)
-
+EPSI = 1e-4
 # Importacion de las bibliotecas necesarias
 
 import bokeh
@@ -17,13 +12,11 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
 from tensorflow.keras import layers
-from keras import regularizers
 from tensorflow import keras
+from keras import regularizers
 from math import sqrt
 import numpy as np
 import pandas as pd
-
-np.random.seed(SEED)
 
 
 ########################################################################################
@@ -148,18 +141,17 @@ def modMLP(neuronas, activaciones, m, lamda=0, show=True):
 
 def fitMLP(model, X_train, y_train, X_val, y_val, X_test, y_test, epoc=30, patien=-1, verb=1):
     #adam = keras.optimizers.Adam(learning_rate=0.001, beta_1=0.9, beta_2=0.999, amsgrad=False)
-    model.compile(loss="mean_squared_error", optimizer="adam", metrics=['mae', 'mse'])  
+    model.compile(loss="mean_squared_error", optimizer="adam", metrics=['mae'])  
     
     if -1 == patien:
-        history = model.fit(X_train, y_train, batch_size=64, verbose=verb, epochs=epoc, validation_data=(X_val, y_val))
+        history = model.fit(X_train, y_train, batch_size=4096, verbose=verb, epochs=epoc, validation_data=(X_val, y_val))
     else:
         callback = EarlyStopping(monitor='val_loss', patience=patien, restore_best_weights=True)
-        history = model.fit(X_train, y_train, batch_size=64,verbose=verb, callbacks=[callback], epochs=epoc, validation_data=(X_val, y_val))
+        history = model.fit(X_train, y_train, batch_size=4096,verbose=verb, callbacks=[callback], epochs=epoc, validation_data=(X_val, y_val))
 
-    test_scores = model.evaluate(X_test, y_test, batch_size=64)
+    test_scores = model.evaluate(X_test, y_test, batch_size=4096)
     print('Test loss:', test_scores[0])
     print('Test mae:', test_scores[1])
-    print('Test mse:', test_scores[2])
     
     return history
 
@@ -281,8 +273,8 @@ def plotHistory(history):
     hist = pd.DataFrame(history.history)
     hist['epoch'] = history.epoch
   
-    plt.figure(figsize=(16, 12))
-    plt.subplot(221)
+    plt.figure(figsize=(20, 6))
+    plt.subplot(121)
     #plt.figure()
     plt.xlabel('Epoch')
     plt.ylabel('Mean Square Error LOSS')
@@ -294,23 +286,13 @@ def plotHistory(history):
     #plt.ylim([0,20])
     plt.legend(loc="upper right")
 
-    plt.subplot(222)
+    plt.subplot(122)
     plt.xlabel('Epoch')
-    plt.ylabel('mean_absolute_error')
-    plt.plot(hist['epoch'], hist['mean_absolute_error'],
+    plt.ylabel('mae')
+    plt.plot(hist['epoch'], hist['mae'],
              label='Train MAE')
-    plt.plot(hist['epoch'], hist['val_mean_absolute_error'],
+    plt.plot(hist['epoch'], hist['val_mae'],
              label = 'Val MAE')
-    #plt.ylim([0,20])
-    plt.legend(loc="upper right")
-    
-    plt.subplot(223)
-    plt.xlabel('Epoch')
-    plt.ylabel('mean_squared_error')
-    plt.plot(hist['epoch'], hist['mean_squared_error'],
-             label='Train MSE')
-    plt.plot(hist['epoch'], hist['val_mean_squared_error'],
-             label = 'Val MSE')
     #plt.ylim([0,20])
     plt.legend(loc="upper right")
   
